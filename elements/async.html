@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title></title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        div {
+            text-shadow: 5px 1in 0px;
+        }
+        
+        label {
+            clear: both;
+            display: block;
+            float: left;
+            width: 125px;
+        }
+    </style>
+    <script src="../bower_components/jquery/dist/jquery.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        $(function () {
+            $('#sub').on('click', function (e) {
+                e.preventDefault();
+                var formData = $('#myForm').serialize();
+                var data = decodeURIComponent(formData);
+
+                //sync
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.open("GET", "text.js", false);
+                xmlhttp.send();
+                var doc = JSON.parse(xmlhttp.response);
+
+
+                //async
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.addEventListener('progress', function (ev) {
+                    debugger
+                }, false);
+                xmlhttp.addEventListener('error', function (ev) {
+
+                }, false);
+                xmlhttp.addEventListener('abort', function (ev) {
+
+                }, false);
+                xmlhttp.open("GET", "text.js", true);
+                xmlhttp.onreadystatechange = function (request, ev) {
+                    if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+                        var jsonObject = JSON.parse(xmlhttp.response);
+                    }
+                }
+                xmlhttp.send();
+
+
+                function timeoutAsync(milliseconds) {
+                    var deferred = $.Deferred();
+                    setTimeout(function () {
+                        deferred.resolve();
+                    }, milliseconds);
+                    return deferred.promise();
+                }
+
+                function abcAsync() {
+                    var firstPromise = timeoutAsync(2000);
+                    firstPromise.done(function () {
+                        var secondPromise = timeoutAsync(3000);
+                        secondPromise.done(function () {
+                            //firstPromise is already done, so the function attached to it executes immediately.
+                            firstPromise.done(function () {
+                                alert('done!')
+                            });
+                        });
+                    });
+                    return firstPromise;
+                }
+
+                //use promise.pipe to make code manageable
+                function abcAsyncPipe() {
+                    var firstPromise = timeoutAsync(2000);
+                    var secondPromise = firstPromise.pipe(function () {
+                        return timeoutAsync(3000);
+                    });
+                    var thirdPromise = secondPromise.pipe(function () {
+                        return timeoutAsync(1000);
+                    });
+                    var fourthPromise = thirdPromise.pipe(function () {
+                        return timeoutAsync(1234);
+                    });
+                    fourthPromise.done(function () {
+                        firstPromise.done(function () {
+                            alert('done!')
+                        });
+                    });
+                    return fourthPromise;
+                }
+
+                //use $.when to execute asynchronous operations in parallel
+                function abcAsyncInParallel() {
+                    var deferred = $.Deferred();
+                    var firstPromise = timeoutAsync(2000);
+                    var secondPromise = timeoutAsync(3000);
+                    var thirdPromise = timeoutAsync(1000);
+                    var fourthPromise = timeoutAsync(1234);
+                    $.when(firstPromise, secondPromise, thirdPromise, fourthPromise).then(function () {
+                        alert('done!');
+                        deferred.resolve();
+                    }, function () {
+                        //error
+                        deferred.reject();
+                    });
+                    return deferred.promise();
+                }
+
+                //calculate the progress when asynchronous operations execute
+                function abcAsyncProgress() {
+                    var deferred = $.Deferred();
+                    var count = 0;
+                    var firstPromise = timeoutAsync(2000);
+                    var secondPromise = timeoutAsync(3000);
+                    var thirdPromise = timeoutAsync(1000);
+                    var fourthPromise = timeoutAsync(1234);
+                    firstPromise.always(function () {
+                        deferred.notify(++count);
+                    });
+                    secondPromise.always(function () {
+                        deferred.notify(++count);
+                    });
+                    thirdPromise.always(function () {
+                        deferred.notify(++count);
+                    });
+                    fourthPromise.always(function () {
+                        deferred.notify(++count);
+                    });
+                    $.when(firstPromise, secondPromise, thirdPromise, fourthPromise).then(function () {
+                        alert('done!');
+                        deferred.resolve();
+                    }, function () {
+                        deferred.reject();
+                    });
+                    return deferred.promise();
+                }
+
+                function runAbcAsync() {
+                    var promise = abcAsync();
+                    promise.progress(function (msg) {
+                        alert(msg);
+                    });
+                    return promise;
+                }
+
+
+            })
+        })
+    </script>
+</head>
+
+<body>
+    <div>1111111</div>
+    <form method="post" id='myForm'>
+        <label for="Id">Enter Customer ID:</label>
+        <input type="text" name="Id" />
+        <input type="range" name="rating" min="1" max="7" value="4" />
+        <input type="submit" value="Get Customer" id='sub' />
+    </form>
+</body>
+
+</html>
